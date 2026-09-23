@@ -1,74 +1,92 @@
 # Speech Transcription Module
 
-Орысша аудионы Whisper large-v3 + faster-whisper арқылы мәтінге айналдыру. Барлық өңдеу GitHub Actions серверінде орындалады; компьютерге Python немесе модель орнату қажет емес.
+Орысша аудионы Whisper large-v3 моделімен тануға арналған модуль.
 
-## GitHub-та іске қосу
+## Қазіргі күйі
 
-1. Аудиоларды осы модульдің `01_datasets_audio/` папкасына жүктеңіз (MP3, WAV, M4A, FLAC).
-2. Репозиторийдің **Actions → Transcribe Russian audio** бөліміне өтіңіз.
-3. **Run workflow** басып, `main` тармағын таңдаңыз.
-4. **input_path** мәнін `01_datasets_audio` күйінде қалдырсаңыз, папкадағы барлық аудио өңделеді. Бір файл үшін `01_datasets_audio/01_audio1.mp3` деп жазыңыз.
-5. **word_timestamps** қосылса, сөздердің уақыт белгілері де беріледі.
-6. **Run workflow** батырмасын басыңыз. Аяқталған іске қосуды ашып, **Artifacts → transcripts-…** нәтижесін алыңыз.
+`requirements.txt` арқылы faster-whisper орнатуға болады. Тәуелділіктер GitHub серверіне емес, бағдарламаны іске қосатын компьютердің виртуалды ортасына орнатылады. Толық `transcribe.py` CLI және әр аудиоға жеке TXT/JSON экспорттау осы өзгеріске кірмейді.
 
-[Workflow беті](https://github.com/BAITC-Hacks/hack-18881e5e-team/actions/workflows/transcribe.yml)
+## Орнату: Windows PowerShell
 
-## Нәтижелер
+Python 3.11 (64-bit) пайдалануды ұсынамыз. Репозиторийді жүктегеннен кейін оның түбірінен:
 
-Artifact архивінің түбірінде аудио атауымен жеке папкалар болады:
-
-```text
-01_audio1/
-├── 01_audio1.txt
-└── 01_audio1.json
-01_audio2/
-├── 01_audio2.txt
-└── 01_audio2.json
+```powershell
+cd 01_Speech_Transcription_Module
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -c "from faster_whisper import WhisperModel; print('faster-whisper import OK')"
 ```
 
-GitHub runner ішінде олар `outputs/` папкасында жасалады. Нәтижелер Code бөліміндегі репозиторийге автоматты commit жасалмайды; Artifacts ретінде 7 күн сақталады (ұйым саясаты шектеуі мүмкін).
-Әр іске қосу бөлек artifact жасайды.
+Виртуалды ортаны белсендіру міндетті емес: командалар оның Python файлын тікелей пайдаланады. Импортты тексеру модельді жүктемейді.
 
-TXT — толық мәтін. JSON — аудио атауы, модель, тіл, бастапқы ұзақтық, мәтін және сегменттер. Уақыт секундпен, бастапқы аудиоға қатысты беріледі. Сөз таймкодтары таңдалса, `words` массиві қосылады.
-Сегменттер міндетті түрде грамматикалық сөйлем шекарасы емес. Пунктуацияны ASR моделі жасайды; бөлек мәтінді қайта жазатын LLM қолданылмайды.
+Linux/macOS:
 
-## Өңдеу тәртібі
+```bash
+cd 01_Speech_Transcription_Module
+python3.11 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip check
+```
 
-- Модель: `large-v3`; тіл: `ru`; режим: `transcribe`.
-- GitHub runner: CPU, `int8`. GPU және API кілті қажет емес.
-- Үнсіздікті өткізу: VAD. Ішкі папкалар автоматты араланбайды.
-- Үлкен модель әр жаңа runner-де жүктеледі; жүктеу үшін интернет керек.
-- CPU-да өңдеу баяу болуы мүмкін; job шегі — 180 минут.
-- GitHub Actions минуттары мен artifact сақтау ұйымның жоспары/квотасына есептелуі мүмкін.
-- Бір файл қате берсе, қалғандары өңделеді; сол папкада `error.log` болады. Workflow қате күйімен аяқталса да, жасалған нәтижелерді жүктеу қадамы орындалады.
-- Атауы бірдей аудиолардың нәтиже папкалары кеңейтім және қажет болса суффикспен ажыратылады.
-- Бұрынғы папка бар болса, скрипт оны өткізеді; `--overwrite` жаңартуға рұқсат береді. Қате қайталанғанда бұрынғы нәтиже сақталуы мүмкін: `error.log` бар папкадағы ескі TXT/JSON-ды жаңа нәтиже деп қабылдамаңыз.
+## Модельді пайдалану үлгісі
 
-## Файлдар
+Төмендегі Python кодын модуль папкасынан орындаңыз. Алғаш рет интернет қажет: large-v3 салмақтары Hugging Face кэшіне жүктеледі. Жүктеу көлемі бірнеше ГБ болуы мүмкін. Кэштегі салмақтарды Git-ке қоспаңыз.
 
-- `transcribe.py` — бір файлды немесе папканы өңдеу.
-- `test_transcribe.py` — модельсіз файл сақтау және қате өңдеу тексерулері.
-- `requirements.txt` — faster-whisper тәуелділігі.
-- `.gitignore` — жергілікті орта, кэш және generated outputs файлдарын алып тастайды.
-- `../.github/workflows/transcribe.yml` — репозиторий түбіріндегі workflow. Нақты жол: `.github/workflows/transcribe.yml`.
+```python
+from faster_whisper import WhisperModel
 
-## CLI параметрлері
+model = WhisperModel("large-v3", device="cpu", compute_type="int8")
+segments, info = model.transcribe(
+    "01_datasets_audio/01_audio1.mp3",
+    language="ru",
+    task="transcribe",
+    beam_size=5,
+    vad_filter=True,
+    word_timestamps=True,
+)
+for segment in segments:
+    print(f"[{segment.start:.2f}–{segment.end:.2f}] {segment.text.strip()}")
+```
 
-`--input`, `--output-dir`, `--model`, `--device auto|cpu|cuda`,
-`--word-timestamps`, `--overwrite`.
+Бұл үлгі нәтижені терминалға шығарады; TXT/JSON файлдарын жасамайды.
+`segments` — генератор: толық транскрипция үшін оны соңына дейін оқу қажет.
+CPU арқылы large-v3 баяу жұмыс істеуі мүмкін.
 
-Әдепкі input/output скрипт орналасқан папкаға қатысты. Басқа салыстырмалы жолдар жұмыс папкасына қатысты.
-Workflow Python 3.11 ортасын өзі дайындайды.
+## NVIDIA GPU
 
-## Тексеру және қателер
+GPU үшін сәйкес NVIDIA драйвері, CUDA 12 cuBLAS және cuDNN 9 қажет. Кітапханаларды орнату жөніндегі [ресми нұсқаулықты](https://github.com/SYSTRAN/faster-whisper#gpu) қараңыз. Windows-та қажетті DLL файлдары PATH арқылы табылуы тиіс.
 
-Код/workflow main тармағында өзгергенде тек жеңіл `validate` job автоматты орындалады: синтаксис, CLI және модельсіз тесттер. Аудионы нақты өңдеу тек **Run workflow** арқылы басталады.
+GPU дайын болса, үлгідегі модельді жүктеу жолын ауыстырыңыз:
 
-- Actions іске қосылмаса: ұйымның Actions саясатын және runner/минут лимитін тексеріңіз.
-- Install қадамы құласа: сол қадамның журналын ашыңыз.
-- Model/аудио қатесі болса: файлдың ашылатынын, желі мен runner жадын тексеріңіз.
-- Timeout болса: бір аудионы жеке іске қосыңыз.
-- WER/CER эталон мәтінсіз есептелмейді.
-- Модельсіз тесттер нақты аудио тану сапасын дәлелдемейді; ол бірінші транскрипциядан кейін бағаланады.
+```python
+model = WhisperModel("large-v3", device="cuda", compute_type="float16")
+```
 
-[faster-whisper ресми құжаттамасы](https://github.com/SYSTRAN/faster-whisper)
+CUDA/DLL қатесі болса, ортаны дұрыстаңыз немесе CPU нұсқасын пайдаланыңыз.
+Жад жеткіліксіз болса, GPU-да `compute_type="int8_float16"` қолданып көріңіз немесе CPU-ға ауысыңыз.
+Модель жүктеу қатесінде интернет пен дискідегі бос орынды тексеріңіз.
+Аудионы оқу қатесінде файл жолын және файлдың ашылатынын тексеріңіз.
+
+## Келісілген нәтиже құрылымы
+
+Болашақ транскрипция скрипті әр аудиоға жеке папка жасауы тиіс:
+
+```text
+outputs/
+├── 01_audio1/
+│   ├── 01_audio1.txt
+│   └── 01_audio1.json
+└── 01_audio2/
+    ├── 01_audio2.txt
+    └── 01_audio2.json
+```
+
+Бұл — күтілетін құрылым; дайын транскрипциялар репозиторийге қосылған жоқ.
+Эталон мәтінсіз WER/CER есептелмейді.
+
+## Тексеру шегі
+
+Тәуелділік пен пайдалану үлгісі faster-whisper ресми құжаттамасына сәйкес берілген. Осы өзгерісті дайындау кезінде кітапхананы нақты ортаға орнату және аудионы модельмен өңдеу орындалған жоқ.

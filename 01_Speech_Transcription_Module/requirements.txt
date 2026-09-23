@@ -1,0 +1,2 @@
+# Python 3.11 recommended. Model weights are downloaded separately at runtime.
+faster-whisper>=1.1.0,<2.0.0

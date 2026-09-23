@@ -1,0 +1,103 @@
+name: Transcribe Russian audio
+
+on:
+  workflow_dispatch:
+    inputs:
+      input_path:
+        description: "Audio file or folder (relative to module)"
+        required: true
+        default: "01_datasets_audio"
+        type: string
+      word_timestamps:
+        description: "Include word timestamps"
+        default: true
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - "01_Speech_Transcription_Module/*.py"
+      - ".github/workflows/transcribe.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: transcribe-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: 01_Speech_Transcription_Module
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Check syntax, CLI and output handling
+        run: |
+          python -m py_compile transcribe.py test_transcribe.py
+          python transcribe.py --help
+          python -m unittest -v test_transcribe
+
+  transcribe:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: 01_Speech_Transcription_Module
+    env:
+      PYTHONUNBUFFERED: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: 01_Speech_Transcription_Module/requirements.txt
+      - name: Install faster-whisper
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip check
+          python -c "from faster_whisper import WhisperModel; print('Import OK')"
+      - name: Transcribe on CPU
+        env:
+          AUDIO_INPUT: ${{ inputs.input_path }}
+          WORD_TIMESTAMPS: ${{ inputs.word_timestamps }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          root = Path.cwd().resolve()
+          source = (root / os.environ["AUDIO_INPUT"]).resolve()
+          if not source.is_relative_to(root / "01_datasets_audio"):
+              sys.exit("Input must be inside 01_datasets_audio.")
+          command = [
+              sys.executable, "transcribe.py", "--input", str(source),
+              "--output-dir", "outputs", "--device", "cpu", "--model", "large-v3",
+          ]
+          if os.environ["WORD_TIMESTAMPS"] == "true":
+              command.append("--word-timestamps")
+          subprocess.run(command, check=True)
+          PY
+      - name: Upload transcripts and error logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: transcripts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: 01_Speech_Transcription_Module/outputs/
+          if-no-files-found: warn
+          retention-days: 7

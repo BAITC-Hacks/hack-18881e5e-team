@@ -1,0 +1,48 @@
+{
+  "source": "D:\\Projects\\hack-18881e5e-team-main\\02_Speaker_Diarization_and_Identification\\examples\\dialogue.txt",
+  "model": "Qwen3-8B-Q4_K_M",
+  "method": "text_only",
+  "partial": false,
+  "note": "Text-based estimates; ASR boundaries are not verified speaker turns. All labels require review.",
+  "fragments": [
+    {
+      "first": 0,
+      "last": 2,
+      "form": "dialogue",
+      "communication_type": "question_answer",
+      "evidence": "Анна: Когда будет готов отчёт?",
+      "evidence_verified": true,
+      "start": null,
+      "end": null,
+      "text": "Анна: Когда будет готов отчёт?\n\nИван: Завтра утром.\n\nАнна: Хорошо, пришли его мне до десяти.\n",
+      "source_segments": [
+        {
+          "index": 0,
+          "start": null,
+          "end": null,
+          "char_start": 0,
+          "char_end": 31,
+          "text": "Анна: Когда будет готов отчёт?\n"
+        },
+        {
+          "index": 1,
+          "start": null,
+          "end": null,
+          "char_start": 31,
+          "char_end": 51,
+          "text": "Иван: Завтра утром.\n"
+        },
+        {
+          "index": 2,
+          "start": null,
+          "end": null,
+          "char_start": 51,
+          "char_end": 91,
+          "text": "Анна: Хорошо, пришли его мне до десяти.\n"
+        }
+      ],
+      "status": "needs_review",
+      "analysis_chunk": 1
+    }
+  ]
+}
